@@ -1,0 +1,470 @@
+<script type="text/html" data-template-name="openid-credentials">
+  <div id="node-config-openid-client-keys">
+    <div class="form-row">
+      <p><b><span data-i18n="openid.label.config"></span>:</p>
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-nameOfId">
+        <i class="fa fa-male"></i> <span data-i18n="openid.label.name_of_id"></span>
+      </label>
+      <input type="text" id="node-config-input-nameOfId">
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-discovery">
+        <i class="fa fa-globe"></i> <span data-i18n="openid.label.discovery_url"></span>
+      </label>
+      <input type="text" id="node-config-input-discovery">
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-clientId">
+        <i class="fa fa-user"></i> <span data-i18n="openid.label.client_id"></span>
+      </label>
+      <input type="text" id="node-config-input-clientId">
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-clientSecret">
+        <i class="fa fa-key"></i> <span data-i18n="openid.label.client_secret"></span>
+      </label>
+      <input type="password" id="node-config-input-clientSecret">
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-scopes">
+        <i class="fa fa-crosshairs"></i> <span data-i18n="openid.label.scopes"></span>
+      </label>
+      <input type="text" placeholder="openid email offline_access" id="node-config-input-scopes">
+    </div>
+    <div class="form-row">
+      <label>&nbsp;</label>
+      <a class="btn" id="node-config-start-auth" href="#" target="_blank"><span data-i18n="openid.label.authenticate"></span></a>
+    </div>
+    <div class="form-tips" id="node-config-openid-tooltip">
+    </div>
+  </div>
+  <div id="node-config-openid">
+    <div class="form-row">
+      <label><i class="fa fa-user"></i> <span data-i18n="openid.label.id"></span></label>
+      <span id="node-config-openid-displayName" class="input-xlarge uneditable-input"></span>
+    </div>
+    <div class="form-row">
+      <label>&nbsp;</label>
+      <a class="btn" id="node-config-resetlogin-auth" href="#" target="_blank"><span>Resend</span></a>
+    </div>
+    <input type="hidden" id="node-config-input-displayName">
+    <input type="hidden" placeholder="url" id="node-config-input-hiddenUrl">
+  </div>
+</script>
+
+<script type="text/javascript">
+  (function () {
+    RED.nodes.registerType('openid-credentials', {
+      category: 'config',
+      defaults: {
+        displayName: { value: "" },
+        hiddenUrl: { value: "" },
+      },
+      credentials: {
+        display_name: { type: "text" },
+        discovery_url: { type: "text" },
+        client_id: { type: "text" },
+        client_secret: { type: "password" },
+        scopes: { type: "text" }
+      },
+      label: function () {
+        return this.displayName || 'FFDC Test Node';
+      },
+      exportable: false,
+      oneditprepare: function () {
+        var id = this.id;
+        var pathname = document.location.pathname;
+        if (pathname.slice(-1) != "/") {
+          pathname += "/";
+        }
+        var callback = location.protocol + "//" +
+          location.hostname +
+          (location.port ? ":" + location.port : "") +
+          pathname + "openid-credentials/auth/callback";
+        var tip = this._("openid.tip.redirect", { callback: callback });
+        $("#node-config-openid-tooltip").html(tip);
+
+        function updateOpenIDAuthButton() {
+          var v1 = $("#node-config-input-discovery").val();
+          var v2 = $("#node-config-input-clientId").val();
+          var v3 = $("#node-config-input-clientSecret").val();
+          $("#node-config-start-auth").toggleClass("disabled", (v1.length === 0 || v2.length === 0 || v3.length === 0));
+        }
+        $("#node-config-input-discovery").on('change keydown paste input', updateOpenIDAuthButton);
+        $("#node-config-input-clientId").on('change keydown paste input', updateOpenIDAuthButton);
+        $("#node-config-input-clientSecret").on('change keydown paste input', updateOpenIDAuthButton);
+        $("#node-config-input-scopes").on('change keydown paste input', updateOpenIDAuthButton);
+
+        function updateOpenIDDisplayName(dn) {
+          $("#node-config-openid-client-keys").hide();
+          $("#node-config-openid").show();
+          $("#node-config-input-displayName").val(dn);
+          $("#node-config-openid-displayName").html(dn);
+        }
+
+        function pollOpenIDCredentials() {
+          $.getJSON('credentials/openid-credentials/' + id, function (data) {
+            if (data.display_name) {
+              $("#node-config-dialog-ok").button("enable");
+              updateOpenIDDisplayName(data.display_name);
+              delete window.openidConfigNodeIntervalId;
+            } else {
+              window.openidConfigNodeIntervalId = window.setTimeout(pollOpenIDCredentials, 2000);
+            }
+          });
+        }
+
+        updateOpenIDAuthButton();
+
+        if (this.displayName) {
+          updateOpenIDDisplayName(this.displayName);
+        } else {
+          $("#node-config-openid-client-keys").show();
+          $("#node-config-openid").hide();
+          $("#node-config-dialog-ok").button("disable");
+        }
+
+        $("#node-config-start-auth").mousedown(function () {
+          var discovery = $("#node-config-input-discovery").val();
+          var clientId = $("#node-config-input-clientId").val();
+          var clientSecret = $("#node-config-input-clientSecret").val();
+          var scopes = $('#node-config-input-scopes').val();
+          var nameOfId = $('#node-config-input-nameOfId').val();
+          var url = 'openid-credentials/auth?id=' + id + '&discovery=' + encodeURIComponent(discovery) + '&clientId=' + clientId + "&clientSecret=" + clientSecret + "&scopes=" + scopes + "&nameOfId=" + nameOfId + "&callback=" + encodeURIComponent(callback);
+          $('#node-config-input-hiddenUrl').val(url);
+          $(this).attr("href", url);
+          window.openidConfigNodeIntervalId = window.setTimeout(pollOpenIDCredentials, 2000);
+        });
+        $("#node-config-start-auth").click(function (e) {
+          var discovery = $("#node-config-input-discovery").val();
+          var clientId = $("#node-config-input-clientId").val();
+          var clientSecret = $("#node-config-input-clientSecret").val();
+          var scopes = $('#node-config-input-scopes').val();
+          if (discovery === "" || clientId === "" || clientSecret === "") {
+            e.preventDefault();
+          }
+        });
+        $("#node-config-reset-auth").click(function (e) {
+          $("#node-config-openid-client-keys").show();
+          $("#node-config-openid").hide();
+        });
+
+        $("#node-config-resetlogin-auth").mousedown(function () {
+          $(this).attr("href", $('#node-config-input-hiddenUrl').val());
+          window.openidConfigNodeIntervalId = window.setTimeout(pollOpenIDCredentials, 2000);
+        });
+
+      },
+      oneditsave: function () {
+        var headers = $("#node-input-headers-container").editableList('items');
+        var node = this;
+        headers.each(function (i) {
+          var header = $(this);
+          var keyType = header.find(".node-input-header-name").typedInput('type');
+          var keyValue = header.find(".node-input-header-name").typedInput('value');
+          var valueType = header.find(".node-input-header-value").typedInput('type');
+          var valueValue = header.find(".node-input-header-value").typedInput('value');
+          var key = keyType;
+          var value = valueType;
+          if (keyType === 'other') {
+            key = keyValue;
+          }
+          if (valueType === 'other') {
+            value = valueValue;
+          }
+          if (key !== '') {
+            node.headers[key] = value;
+          }
+        });
+        if (window.openidConfigNodeIntervalId) {
+          window.clearTimeout(window.openidConfigNodeIntervalId);
+          delete window.openidConfigNodeIntervalId;
+        }
+      },
+      oneditcancel: function () {
+        if (window.openidConfigNodeIntervalId) {
+          window.clearTimeout(window.openidConfigNodeIntervalId);
+          delete window.openidConfigNodeIntervalId;
+        }
+      }
+    });
+  })();
+</script>
+
+<!-- Node's first page -->
+
+<script type="text/html" data-template-name="openid">
+  <div class="form-row">
+    <label for="node-input-grant_type_auth"><i class="fa fa-wrench"></i> <span data-i18n="oauth2.label.grant_type"></span></label>
+    <select type="text" id="node-input-grant_type_auth" style="width:70%;">
+      <option value="client_credentials" data-i18n="oauth2.opts.client_credentials"></option>
+      <option value="authorisation_code" data-i18n="oauth2.opts.authorisation_code_credentials"></option>
+    </select>
+  </div>
+
+  <!-- node-access_token_url -->
+  <div class="form-row" id="node-access-token_url">
+    <label for="node-input-access_token_url"><i class="fa fa-link fa-fw"></i> <span data-i18n="oauth2.label.access_token_url"></span></label>
+    <input type="text" id="node-input-access_token_url" data-i18n="[placeholder]oauth2.placeholder.access_token_url" style="width:70%;">
+  </div>
+
+  <!-- discovery_url -->
+  <div class="form-row" id="node-discovery_url">
+    <label for="node-input-discovery_url"><i class="fa fa-link fa-fw"></i> <span data-i18n="oauth2.label.discovery_url"></span></label>
+    <input type="text" id="node-input-discovery_url" data-i18n="[placeholder]oauth2.placeholder.discovery_url" style="width:70%;">
+  </div>
+
+  <div class="form-row" id="node-password_credentials">
+    <!--node-input-username -->
+    <div class="form-row">
+      <label for="node-input-username"><i class="fa fa-user fa-fw"></i> <span data-i18n="oauth2.label.username"></span></label>
+      <input type="text" id="node-input-username" data-i18n="[placeholder]oauth2.placeholder.username" style="width:70%;">
+    </div>
+
+    <!-- node-input-password -->
+    <div class="form-row">
+      <label for="node-input-password"><i class="fa  fa-lock fa-fw"></i> <span data-i18n="oauth2.label.password"></span></label>
+      <input type="authorisation_code" id="node-input-password" data-i18n="[placeholder]oauth2.placeholder.password" style="width:70%;">
+    </div>
+  </div>
+
+    <!--node-input-name-of-id -->
+    <div class="form-row" id="node-name-of-id">
+      <label for="node-input-name-of-id"><i class="fa fa-user fa-fw"></i> <span data-i18n="oauth2.label.name-of-id"></span></label>
+      <input type="text" id="node-input-name-of-id" data-i18n="[placeholder]oauth2.placeholder.name-of-id" style="width:70%;">
+    </div>
+    <!-- node-input-authorisation_code -->
+    <div class="form-row" id="node-authorisation-code">
+      <label for="node-input-authorisation-code"><i class="fa  fa-lock fa-fw"></i> <span data-i18n="oauth2.label.authorisation_code"></span></label>
+      <input type="authorisation_code" id="node-input-authorisation_code" data-i18n="[placeholder]oauth2.placeholder.authorisation_code" style="width:70%;">
+    </div>
+    
+  <!-- node-client_id -->
+  <div class="form-row" id="node-client_id">
+    <label for="node-input-client_id"><i class="fa fa-user fa-fw"></i> <span data-i18n="oauth2.label.client_id"></span></label>
+    <input type="text" id="node-input-client_id" data-i18n="[placeholder]oauth2.placeholder.client_id" style="width:70%;">
+  </div>
+  <!-- node-client_secret -->
+  <div class="form-row" id="node-client_secret">
+    <label for="node-input-client_secret"><i class="fa fa-lock fa-fw"></i> <span data-i18n="oauth2.label.client_secret"></span></label>
+    <input type="password" id="node-input-client_secret" data-i18n="[placeholder]oauth2.placeholder.client_secret" style="width:70%;">
+  </div>
+  <!-- node-scope -->
+  <div class="form-row" id="node-scope">
+      <label for="node-input-scope"><i class="fa fa-code fa-fw"></i> <span data-i18n="oauth2.label.scope"></span></label>
+      <input type="text" id="node-input-scope" data-i18n="[placeholder]oauth2.placeholder.scope" style="width:70%;">
+  </div>
+
+  <!-- node-input-headers-container -->
+  <div class="form-row" id = "headers" style="margin-bottom:0;">
+    <label><i class="fa fa-list"></i> <span data-i18n="oauth2.placeholder.headers"></span></label>
+  </div>
+  <div class="form-row node-input-headers-container-row" id = "headers_table">
+    <ol id="node-input-headers-container"></ol>
+  </div>
+
+  <div class="form-row" id="node-openid">
+    <label for="node-input-openid"><i class="fa fa-user"></i> <span data-i18n="openid.label.id"></span></label>
+    <input type="text" id="node-input-openid">
+  </div>
+  
+  <hr align="middle"/>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="openid.label.name"></span></label>
+    <input type="text" id="node-input-name" data-i18n="[placeholder]openid.label.openid">
+  </div>
+</script>
+
+<script type="text/x-red" data-help-name="openid">
+<p>
+FFDC Login Node 
+</p>
+<p>
+This access token is stored into this message property:
+<code>msg.access_token</code>
+</p>
+<p>
+
+In order to be usable with the HTTP node, the access token is also added to HTTP headers:
+<code>msg.headers['Authorization']</code>
+</p>
+</script>
+<script type="text/javascript">
+  var headerTypes = [
+    { value: "content-type", label: "Content-Type", hasValue: false },
+    { value: "location", label: "Location", hasValue: false },
+    { value: "other", label: RED._("node-red:httpin.label.other"), icon: "red/images/typedInput/az.png" }
+  ]
+  RED.nodes.registerType('openid', {
+    category: 'function',
+    color: '#e7e7ae',
+    defaults: {
+      name: { value: '' },
+      openid: { type: 'openid-credentials', required: true },
+      container: { value: "" },
+      access_token_url: { value: "" },
+      grant_type_auth: { value: "set_by_credentials" },
+      username: { value: "" },
+      password: { value: "" },
+      client_id: { value: "" },
+      client_secret: { value: "" },
+      scope: { value: "" },
+      headers: { value: {} }
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'openid.png',
+    label: function () {
+      return this.name || 'FFDC Login Node';
+    },
+    labelStyle: function () {
+      return this.name ? 'node_label_italic' : '';
+    },
+    oneditprepare: function () {
+      if (this.container === undefined) {
+        $("#node-input-container").val("payload");
+      }
+      $("#node-input-container").typedInput({ default: 'msg', types: ['msg'] });
+      $("#node-input-grant_type_auth").on("change", function () {
+        if ($("#node-input-grant_type_auth").val() === "client_credentials") {
+          $("#node-access-token_url").show();
+          $("#node-discovery_url").hide();
+          $('#node-input-username').hide();
+          $('#node-name-of-id').show();
+          $('#node-authorisation-code').hide();
+          $('#node-input-password').hide();
+          $("#node-client_id").show();
+          $("#node-client_secret").show();
+          $("#node-scope").show();
+          $("#node-password_credentials").hide();
+          $('#node-openid').hide();
+          $('#headers').hide();
+          $('#headers_table').hide();
+
+
+        } else if ($("#node-input-grant_type_auth").val() === "authorisation_code") {
+          $("#node-access-token_url").hide();
+          $("#node-discovery_url").hide();
+          $('#node-input-username').show();
+          $('#node-name-of-id').hide();
+          $('#node-authorisation-code').hide();
+          $('#node-input-password').hide();
+          $("#node-client_id").hide();
+          $("#node-client_secret").hide();
+          $("#node-scope").hide();
+          $("#node-password_credentials").hide();
+          $('#node-openid').show();
+          $('#headers').hide();
+          $('#headers_table').hide();
+        } else {
+          $("#node-access-token_url").hide();
+          $("#node-discovery_url").hide();
+          $('#node-input-username').hide();
+          $('#node-name-of-id').hide();
+          $('#node-authorisation-code').hide();
+          $('#node-input-password').hide();
+          $("#node-client_id").hide();
+          $("#node-client_secret").hide();
+          $("#node-scope").hide();
+          $("#node-password_credentials").hide();
+          $('#node-openid').hide();
+          $('#headers').hide();
+          $('#headers_table').hide();
+        }
+      });
+      function resizeRule(rule) {
+        var newWidth = rule.width();
+        rule.find('.red-ui-typedInput').typedInput("width", (newWidth - 15) / 2);
+      }
+      var headerList = $("#node-input-headers-container").css('min-height', '150px').css('min-width', '450px').editableList({
+        addItem: function (container, i, header) {
+          var row = $('<div/>').css({
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
+          }).appendTo(container);
+
+          var propertyName = $('<input/>', { class: "node-input-header-name", type: "text" })
+            .appendTo(row)
+            .typedInput({ types: headerTypes });
+
+          var propertyValue = $('<input/>', { class: "node-input-header-value", type: "text", style: "margin-left: 10px" })
+            .appendTo(row)
+            .typedInput({
+              types:
+                header.h === 'content-type' ? contentTypes : [{ value: "other", label: "other", icon: "red/images/typedInput/az.png" }]
+            });
+
+          var matchedType = headerTypes.filter(function (ht) {
+            return ht.value === header.h
+          });
+          if (matchedType.length === 0) {
+            propertyName.typedInput('type', 'other');
+            propertyName.typedInput('value', header.h);
+            propertyValue.typedInput('value', header.v);
+          } else {
+            propertyName.typedInput('type', header.h);
+
+            if (header.h === "content-type") {
+              matchedType = contentTypes.filter(function (ct) {
+                return ct.value === header.v;
+              });
+              if (matchedType.length === 0) {
+                propertyValue.typedInput('type', 'other');
+                propertyValue.typedInput('value', header.v);
+              } else {
+                propertyValue.typedInput('type', header.v);
+              }
+            } else {
+              propertyValue.typedInput('value', header.v);
+            }
+          }
+
+          matchedType = headerTypes.filter(function (ht) {
+            return ht.value === header.h
+          });
+          if (matchedType.length === 0) {
+            propertyName.typedInput('type', 'other');
+            propertyName.typedInput('value', header.h);
+          } else {
+            propertyName.typedInput('type', header.h);
+          }
+
+          propertyName.on('change', function (event) {
+            var type = propertyName.typedInput('type');
+            if (type === 'content-type') {
+              propertyValue.typedInput('types', contentTypes);
+            } else {
+              propertyValue.typedInput('types', [{ value: "other", label: "other", icon: "red/images/typedInput/az.png" }]);
+            }
+          });
+
+
+
+          resizeRule(container);
+        },
+        resizeItem: resizeRule,
+        removable: true
+      });
+
+      if (this.headers) {
+        for (var key in this.headers) {
+          if (this.headers.hasOwnProperty(key)) {
+            headerList.editableList('addItem', { h: key, v: this.headers[key] });
+          }
+        }
+      }
+    },
+    oneditresize: function (size) {
+      var rows = $("#dialog-form>div:not(.node-input-headers-container-row)");
+      var height = size.height;
+      for (var i = 0; i < rows.length; i++) {
+        height -= $(rows[i]).outerHeight(true);
+      }
+      var editorRow = $("#dialog-form>div.node-input-headers-container-row");
+      height -= (parseInt(editorRow.css("marginTop")) + parseInt(editorRow.css("marginBottom")));
+      $("#node-input-headers-container").editableList('height', height);
+    },
+  });
+</script>

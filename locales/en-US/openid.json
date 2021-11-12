@@ -1,0 +1,70 @@
+{
+  "openid": {
+    "label": {
+      "id": "ID",
+      "name_of_id": "Name of Id:",
+      "name": "Name",
+      "openid": "FFDC Login Node",
+      "config": "v 3.6",
+      "discovery_url": "Discovery",
+      "client_id": "Client Id",
+      "client_secret": "Client secret",
+      "scopes": "Scopes",
+      "authenticate": "Authenticate",
+      "displayName": "Display name"
+    },
+    "tip": {
+      "redirect": "<p>Please configure the authorized <b>Reply URLs</b> of your app in Developer Protal to include the following URL:</p>\n<code>__callback__</code>"
+    },
+    "status": {
+      "refreshing": "refreshing",
+      "failed": "failed",
+      "error": "error"
+    },
+    "warn": {
+      "missing-credentials": "Missing OpenID credentials"
+    },
+    "error": {
+      "no-credentials": "ERROR: no credentials - should never happen",
+      "authorized": "<html><head></head><body>Authorised - you can close this window and return to Node-RED</body></html>",
+      "token-mismatch": "CSRF token mismatch, possible cross-site request forgery attempt.",
+      "bad-discovery-url": "Bad discovery URL",
+      "refresh-failed": "Unable to refresh the access token",
+      "something-broke": "Something went wrong in the authentication process. Please try again."
+    }
+  },
+  "oauth2": {
+    "oauth2": "FFDC Login",
+    "label": {
+      "grant_type": "Grant Type",
+      "name": "Name",
+      "container": "Container",
+      "access_token_url": "Access Token URL",
+      "discovery_url": "Discovery URL",
+      "username": "Username",
+      "password": "Password",
+      "name-of-id": "Name",
+      "authorisation_code": "Authorisation Code",
+      "client_id": "Client ID",
+      "client_secret": "Client Secret",
+      "scope": "Scope"
+    },
+    "placeholder": {
+      "name": "FFDC Login",
+      "access_token_url": "http://exemplo.com/oauth/token",
+      "discovery_url": "Discovery URL",
+      "username": "admin",
+      "name-of-id": "Name",
+      "password": "admin",
+      "authorisation_code": "Something",
+      "client_id": "012493af6282be51660dbc8e21a8462e",
+      "client_secret": "5621bd4b5a8b09ed31817efb8d54fda2c72bfc1c6968cd4563d83f7cc26f68f6",
+      "scope": "scope",
+      "headers": "headers"
+    },
+    "opts": {
+      "client_credentials": "Client Credentials",
+      "authorisation_code_credentials": "Authorisation Code"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "openid-client": "^2.5.0",
+    "request": "*"
+  },
+  "description": "Node-RED node to integrate OpenID Connect in flows",
+  "keywords": [
+    "node-red",
+    "ffdc",
+    "oidc"
+  ],
+  "name": "node-red-contrib-ffdc-auth",
+  "node-red": {
+    "nodes": {
+      "openid": "openid.js"
+    }
+  },
+  "version": "1.0.0"
+}
