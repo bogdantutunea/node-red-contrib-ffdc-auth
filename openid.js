@@ -38,7 +38,7 @@ module.exports = function (RED) {
     const client_secret = req.query.clientSecret
     name_of_id = req.query.nameOfId
     console.log("req.query.nameOfId: " + req.query.nameOfId)
-    const scopes = req.query.scopes.trim() !== '' ? req.query.scopes.trim() : 'openid email offline_access'
+    const scopes = req.query.scopes.trim() !== '' ? req.query.scopes.trim() : 'openid'
     Issuer.discover(discovery_url).then((issuer) => {
       const csrf_token = crypto.randomBytes(18).toString('base64').replace(/\//g, '-').replace(/\+/g, '_')
       const client = new issuer.Client({ client_id, client_secret })

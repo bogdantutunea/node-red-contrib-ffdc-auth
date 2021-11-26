@@ -5,7 +5,7 @@
       "name_of_id": "Name of Id:",
       "name": "Name",
       "openid": "FFDC Login Node",
-      "config": "v 3.6",
+      "config": "Config",
       "discovery_url": "Discovery",
       "client_id": "Client Id",
       "client_secret": "Client secret",
