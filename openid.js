@@ -16,7 +16,7 @@ module.exports = function (RED) {
       display_name: { type: 'text' },
       discovery_url: { type: 'text' },
       client_id: { type: 'text' },
-      client_secret: { type: 'password' },
+      client_secret: { type: 'text' },
       scopes: { type: 'text' },
       id_token: { type: 'password' },
       refresh_token: { type: 'password' },
