@@ -52,7 +52,8 @@ module.exports = function (RED) {
       res.cookie('csrf', csrf_token)
       res.redirect(authorization_url)
       RED.nodes.addCredentials(node_id, {
-        discovery_url, client_id, client_secret, scopes, redirect_uri, csrf_token
+        discovery_url, client_id, client_secret, scopes, redirect_uri, csrf_token,
+        display_name: name_of_id
       })
     }, (err) => {
       console.log('Discover error %j', err)
@@ -86,8 +87,7 @@ module.exports = function (RED) {
           id_token: tokenSet.id_token,
           refresh_token: tokenSet.refresh_token,
           access_token: tokenSet.access_token,
-          expires_at: tokenSet.expires_at,
-          display_name: name_of_id
+          expires_at: tokenSet.expires_at
         }))
         return res.send(RED._('openid.error.authorized'))
       }, err => {
