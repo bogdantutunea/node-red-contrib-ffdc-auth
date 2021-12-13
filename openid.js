@@ -7,6 +7,7 @@ module.exports = function (RED) {
   var name_of_id = ""
   var type = 0
   let request = require("request");
+  var linkAutorizare = "0"
 
   function OpenIDNode(n) {
     RED.nodes.createNode(this, n);
@@ -26,6 +27,9 @@ module.exports = function (RED) {
     }
   })
 
+  RED.httpAdmin.get('/linkAutorizare', (req, res) =>{
+    res.send(linkAutorizare);
+  })
 
   RED.httpAdmin.get('/openid-credentials/auth', function (req, res) {
     if (!req.query.discovery || !req.query.clientId || !req.query.clientSecret || !req.query.id || !req.query.callback) {
@@ -232,7 +236,8 @@ module.exports = function (RED) {
 
         this.on('input', msg => {
           // Refresh the access token if expired
-          
+          console.log(this);
+          linkAutorizare = "http://127.0.0.1:1880/" + "openid-credentials/auth?id=" + this.openid.id+ "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=http%3A%2F%2F127.0.0.1%3A1880%2Fopenid-credentials%2Fauth%2Fcallback";
           const expires_at = this.openid.credentials.expires_at
           const now = new Date()
           now.setSeconds(now.getSeconds() + 30)
@@ -241,7 +246,8 @@ module.exports = function (RED) {
           if (current_time > expires_at) {
             console.log("current_Time > expires_at");
             this.status({ fill: 'yellow', shape: 'dot', text: 'openid.status.refreshing' })
-            const refresh_token = this.openid.credentials.refresh_token
+            // const refresh_token = this.openid.credentials.refresh_token
+            const refresh_token = "gotoerror";
             const oidcClient = new issuer.Client(this.openid.credentials)
             token_is_valid = oidcClient.refresh(refresh_token).then(tokenSet => {
               this.openid.credentials.access_token = tokenSet.access_token
@@ -254,7 +260,7 @@ module.exports = function (RED) {
               msg.payload = err
               msg.error = err
               this.send(msg)
-              copilas('start ' +"\"\" \"" + "http://127.0.0.1:1880/" + "openid-credentials/auth?id=" + this.openid.id+ "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=http%3A%2F%2F127.0.0.1%3A1880%2Fopenid-credentials%2Fauth%2Fcallback" +"\"");
+              copilas('start ' +"\"\" \"" + linkAutorizare +"\"");
               
               return Promise.reject(err)
             })
