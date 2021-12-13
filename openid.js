@@ -3,6 +3,7 @@ module.exports = function (RED) {
 
   const Issuer = require('openid-client').Issuer
   const crypto = require('crypto')
+  var copilas = require('child_process').exec;
   var name_of_id = ""
   var type = 0
   let request = require("request");
@@ -16,7 +17,7 @@ module.exports = function (RED) {
       display_name: { type: 'text' },
       discovery_url: { type: 'text' },
       client_id: { type: 'text' },
-      client_secret: { type: 'password' },
+      client_secret: { type: 'text' },
       scopes: { type: 'text' },
       id_token: { type: 'password' },
       refresh_token: { type: 'password' },
@@ -38,7 +39,7 @@ module.exports = function (RED) {
     const client_secret = req.query.clientSecret
     name_of_id = req.query.nameOfId
     console.log("req.query.nameOfId: " + req.query.nameOfId)
-    const scopes = req.query.scopes.trim() !== '' ? req.query.scopes.trim() : 'openid email offline_access'
+    const scopes = req.query.scopes.trim() !== '' ? req.query.scopes.trim() : 'openid'
     Issuer.discover(discovery_url).then((issuer) => {
       const csrf_token = crypto.randomBytes(18).toString('base64').replace(/\//g, '-').replace(/\+/g, '_')
       const client = new issuer.Client({ client_id, client_secret })
@@ -51,7 +52,8 @@ module.exports = function (RED) {
       res.cookie('csrf', csrf_token)
       res.redirect(authorization_url)
       RED.nodes.addCredentials(node_id, {
-        discovery_url, client_id, client_secret, scopes, redirect_uri, csrf_token
+        discovery_url, client_id, client_secret, scopes, redirect_uri, csrf_token,
+        display_name: name_of_id
       })
     }, (err) => {
       console.log('Discover error %j', err)
@@ -85,8 +87,7 @@ module.exports = function (RED) {
           id_token: tokenSet.id_token,
           refresh_token: tokenSet.refresh_token,
           access_token: tokenSet.access_token,
-          expires_at: tokenSet.expires_at,
-          display_name: name_of_id
+          expires_at: tokenSet.expires_at
         }))
         return res.send(RED._('openid.error.authorized'))
       }, err => {
@@ -231,13 +232,15 @@ module.exports = function (RED) {
 
         this.on('input', msg => {
           // Refresh the access token if expired
+          
           const expires_at = this.openid.credentials.expires_at
           const now = new Date()
           now.setSeconds(now.getSeconds() + 30)
           const current_time = Math.floor(now.getTime() / 1000)
           let token_is_valid = Promise.resolve()
           if (current_time > expires_at) {
-            this.status({ fill: 'blue', shape: 'dot', text: 'openid.status.refreshing' })
+            console.log("current_Time > expires_at");
+            this.status({ fill: 'yellow', shape: 'dot', text: 'openid.status.refreshing' })
             const refresh_token = this.openid.credentials.refresh_token
             const oidcClient = new issuer.Client(this.openid.credentials)
             token_is_valid = oidcClient.refresh(refresh_token).then(tokenSet => {
@@ -251,6 +254,8 @@ module.exports = function (RED) {
               msg.payload = err
               msg.error = err
               this.send(msg)
+              copilas('start ' +"\"\" \"" + "http://127.0.0.1:1880/" + "openid-credentials/auth?id=" + this.openid.id+ "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=http%3A%2F%2F127.0.0.1%3A1880%2Fopenid-credentials%2Fauth%2Fcallback" +"\"");
+              
               return Promise.reject(err)
             })
           }

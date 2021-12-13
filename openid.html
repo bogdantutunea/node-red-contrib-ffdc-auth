@@ -31,11 +31,11 @@
       <label for="node-config-input-scopes">
         <i class="fa fa-crosshairs"></i> <span data-i18n="openid.label.scopes"></span>
       </label>
-      <input type="text" placeholder="openid email offline_access" id="node-config-input-scopes">
+      <input type="text" placeholder="openid" id="node-config-input-scopes">
     </div>
     <div class="form-row">
       <label>&nbsp;</label>
-      <a class="btn" id="node-config-start-auth" href="#" target="_blank"><span data-i18n="openid.label.authenticate"></span></a>
+      <a class="btn" id="node-config-start-auth" href="#" target="_blank"><span style="color:blue" data-i18n="openid.label.authenticate"></span></a>
     </div>
     <div class="form-tips" id="node-config-openid-tooltip">
     </div>
@@ -47,10 +47,9 @@
     </div>
     <div class="form-row">
       <label>&nbsp;</label>
-      <a class="btn" id="node-config-resetlogin-auth" href="#" target="_blank"><span>Resend</span></a>
+      <a class="btn" id="node-config-edit-auth" href="#"><span data-i18n="openid.label.edit"></span></a>
     </div>
     <input type="hidden" id="node-config-input-displayName">
-    <input type="hidden" placeholder="url" id="node-config-input-hiddenUrl">
   </div>
 </script>
 
@@ -59,14 +58,13 @@
     RED.nodes.registerType('openid-credentials', {
       category: 'config',
       defaults: {
-        displayName: { value: "" },
-        hiddenUrl: { value: "" },
+        displayName: { value: "" }
       },
       credentials: {
         display_name: { type: "text" },
         discovery_url: { type: "text" },
         client_id: { type: "text" },
-        client_secret: { type: "password" },
+        client_secret: { type: "text" },
         scopes: { type: "text" }
       },
       label: function () {
@@ -133,7 +131,6 @@
           var scopes = $('#node-config-input-scopes').val();
           var nameOfId = $('#node-config-input-nameOfId').val();
           var url = 'openid-credentials/auth?id=' + id + '&discovery=' + encodeURIComponent(discovery) + '&clientId=' + clientId + "&clientSecret=" + clientSecret + "&scopes=" + scopes + "&nameOfId=" + nameOfId + "&callback=" + encodeURIComponent(callback);
-          $('#node-config-input-hiddenUrl').val(url);
           $(this).attr("href", url);
           window.openidConfigNodeIntervalId = window.setTimeout(pollOpenIDCredentials, 2000);
         });
@@ -146,14 +143,19 @@
             e.preventDefault();
           }
         });
-        $("#node-config-reset-auth").click(function (e) {
+        $("#node-config-edit-auth").click(function(e) {
+          // console.log("n.open id credentials: ");
+          //console.log(RED.actions);
+          //RED.actions.invoke("core:deploy-flows");
+          console.log(RED.nodes.node(id));
+          $('#node-config-input-nameOfId').val(RED.nodes.node(id).credentials.display_name);
+          $("#node-config-input-clientId").val(RED.nodes.node(id).credentials.client_id);
+          $("#node-config-input-clientSecret").val(RED.nodes.node(id).credentials.client_secret);
+          $("#node-config-input-discovery").val(RED.nodes.node(id).credentials.discovery_url);
+          $("#node-config-input-scopes").val(RED.nodes.node(id).credentials.scopes);
           $("#node-config-openid-client-keys").show();
           $("#node-config-openid").hide();
-        });
-
-        $("#node-config-resetlogin-auth").mousedown(function () {
-          $(this).attr("href", $('#node-config-input-hiddenUrl').val());
-          window.openidConfigNodeIntervalId = window.setTimeout(pollOpenIDCredentials, 2000);
+          $("#node-config-dialog-ok").button("disable");
         });
 
       },
