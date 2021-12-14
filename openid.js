@@ -1,13 +1,16 @@
+const { Console } = require('console')
+
 module.exports = function (RED) {
   'use strict'
 
   const Issuer = require('openid-client').Issuer
   const crypto = require('crypto')
+  const os = require('os')
   var copilas = require('child_process').exec;
   var name_of_id = ""
   var type = 0
   let request = require("request");
-  var linkAutorizare = "0"
+  var linkAutorizare = "empty"
 
   function OpenIDNode(n) {
     RED.nodes.createNode(this, n);
@@ -27,8 +30,13 @@ module.exports = function (RED) {
     }
   })
 
-  RED.httpAdmin.get('/linkAutorizare', (req, res) =>{
-    res.send(linkAutorizare);
+  RED.httpAdmin.get('/linkautorizare', (req, res) =>{
+    if(linkAutorizare.localeCompare("empty"))
+      {
+      res.redirect(linkAutorizare);
+      }
+    else
+      res.send(linkAutorizare);
   })
 
   RED.httpAdmin.get('/openid-credentials/auth', function (req, res) {
@@ -237,7 +245,11 @@ module.exports = function (RED) {
         this.on('input', msg => {
           // Refresh the access token if expired
           console.log(this);
-          linkAutorizare = "http://127.0.0.1:1880/" + "openid-credentials/auth?id=" + this.openid.id+ "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=http%3A%2F%2F127.0.0.1%3A1880%2Fopenid-credentials%2Fauth%2Fcallback";
+          const paragraph = this.openid.credentials.redirect_uri;
+          const regex = ".+?(?=openid-credentials\/auth)";
+          const found = paragraph.match(regex);
+          console.log(found[0]);
+          linkAutorizare = found[0] + "openid-credentials/auth?id=" + this.openid.id+ "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=" + found[0] + "openid-credentials%2Fauth%2Fcallback";
           const expires_at = this.openid.credentials.expires_at
           const now = new Date()
           now.setSeconds(now.getSeconds() + 30)
@@ -260,13 +272,14 @@ module.exports = function (RED) {
               msg.payload = err
               msg.error = err
               this.send(msg)
-              copilas('start ' +"\"\" \"" + linkAutorizare +"\"");
-              
+              //copilas('start ' +"\"\" \"" + linkAutorizare +"\"");
+              // linkAutorizare = "empty";
               return Promise.reject(err)
             })
           }
 
           token_is_valid.then(() => {
+            console.log("token_is_valid then");
             delete msg.error
             msg.access_token = this.openid.credentials.access_token
             const headers = msg.headers || {}
