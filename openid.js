@@ -1,4 +1,6 @@
-const { Console } = require('console')
+const {
+  Console
+} = require('console')
 
 module.exports = function (RED) {
   'use strict'
@@ -18,24 +20,40 @@ module.exports = function (RED) {
 
   RED.nodes.registerType('openid-credentials', OpenIDNode, {
     credentials: {
-      display_name: { type: 'text' },
-      discovery_url: { type: 'text' },
-      client_id: { type: 'text' },
-      client_secret: { type: 'text' },
-      scopes: { type: 'text' },
-      id_token: { type: 'password' },
-      refresh_token: { type: 'password' },
-      access_token: { type: 'password' },
-      expires_at: { type: 'text' }
+      display_name: {
+        type: 'text'
+      },
+      discovery_url: {
+        type: 'text'
+      },
+      client_id: {
+        type: 'text'
+      },
+      client_secret: {
+        type: 'text'
+      },
+      scopes: {
+        type: 'text'
+      },
+      id_token: {
+        type: 'password'
+      },
+      refresh_token: {
+        type: 'password'
+      },
+      access_token: {
+        type: 'password'
+      },
+      expires_at: {
+        type: 'text'
+      }
     }
   })
 
-  RED.httpAdmin.get('/linkautorizare', (req, res) =>{
-    if(linkAutorizare.localeCompare("empty"))
-      {
+  RED.httpAdmin.get('/linkautorizare', (req, res) => {
+    if (linkAutorizare.localeCompare("empty")) {
       res.redirect(linkAutorizare);
-      }
-    else
+    } else
       res.send(linkAutorizare);
   })
 
@@ -54,7 +72,10 @@ module.exports = function (RED) {
     const scopes = req.query.scopes.trim() !== '' ? req.query.scopes.trim() : 'openid'
     Issuer.discover(discovery_url).then((issuer) => {
       const csrf_token = crypto.randomBytes(18).toString('base64').replace(/\//g, '-').replace(/\+/g, '_')
-      const client = new issuer.Client({ client_id, client_secret })
+      const client = new issuer.Client({
+        client_id,
+        client_secret
+      })
       const authorization_url = client.authorizationUrl({
         redirect_uri,
         scope: scopes,
@@ -64,7 +85,12 @@ module.exports = function (RED) {
       res.cookie('csrf', csrf_token)
       res.redirect(authorization_url)
       RED.nodes.addCredentials(node_id, {
-        discovery_url, client_id, client_secret, scopes, redirect_uri, csrf_token,
+        discovery_url,
+        client_id,
+        client_secret,
+        scopes,
+        redirect_uri,
+        csrf_token,
         display_name: name_of_id
       })
     }, (err) => {
@@ -93,7 +119,9 @@ module.exports = function (RED) {
 
     Issuer.discover(credentials.discovery_url).then(issuer => {
       const client = new issuer.Client(credentials)
-      client.authorizationCallback(credentials.redirect_uri, { code: req.query.code }).then((tokenSet) => {
+      client.authorizationCallback(credentials.redirect_uri, {
+        code: req.query.code
+      }).then((tokenSet) => {
         const claims = tokenSet.claims
         RED.nodes.addCredentials(node_id, Object.assign({}, credentials, {
           id_token: tokenSet.id_token,
@@ -101,6 +129,44 @@ module.exports = function (RED) {
           access_token: tokenSet.access_token,
           expires_at: tokenSet.expires_at
         }))
+        console.log("Authorized")
+        var data = "";
+        const http = require('http');
+        http.get('http://127.0.0.1:1880/flows', (res2) => {
+          console.log("eee");
+          res2.on('data', (code) => {
+            data = "{\"flows\":" + code.toString() + "}";
+          });
+
+          res2.on('end', () => {
+            const options = {
+              hostname: '127.0.0.1',
+              port: 1880,
+              path: '/flows',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': data.length,
+                'Node-RED-API-Version': 'v2'
+              }
+            }
+
+            const req = http.request(options, res => {
+              console.log(`statusCode: ${res.statusCode}`)
+              res.on('data', d => {
+                process.stdout.write(d)
+              })
+            })
+
+            req.on('error', error => {
+              console.error(error)
+            })
+
+            req.write(data)
+            req.end()
+          })
+
+        })
         return res.send(RED._('openid.error.authorized'))
       }, err => {
         console.log('OpenID err:', err)
@@ -196,10 +262,16 @@ module.exports = function (RED) {
           try {
             if (error) {
               msg[node.container] = JSON.parse(JSON.stringify(error));
-              node.status({ fill: "red", shape: "dot", text: `ERR ${error.code}` });
+              node.status({
+                fill: "red",
+                shape: "dot",
+                text: `ERR ${error.code}`
+              });
             } else {
               msg[node.container] = JSON.parse(response.body ? response.body : JSON.stringify("{}"));
-              msg["headers"] = { "Authorization": msg[node.container].token_type + " " + msg[node.container].access_token };
+              msg["headers"] = {
+                "Authorization": msg[node.container].token_type + " " + msg[node.container].access_token
+              };
               if (response.statusCode === 200) {
                 node.status({
                   fill: "green",
@@ -249,15 +321,20 @@ module.exports = function (RED) {
           const regex = ".+?(?=openid-credentials\/auth)";
           const found = paragraph.match(regex);
           console.log(found[0]);
-          linkAutorizare = found[0] + "openid-credentials/auth?id=" + this.openid.id+ "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=" + found[0] + "openid-credentials%2Fauth%2Fcallback";
+          linkAutorizare = found[0] + "openid-credentials/auth?id=" + this.openid.id + "&discovery=" + this.openid.credentials.discovery_url + "&clientId=" + this.openid.credentials.client_id + "&clientSecret=" + this.openid.credentials.client_secret + "&scopes=" + this.openid.credentials.scopes + "&nameOfId=" + this.openid.credentials.display_name + "&callback=" + found[0] + "openid-credentials%2Fauth%2Fcallback";
           const expires_at = this.openid.credentials.expires_at
           const now = new Date()
           now.setSeconds(now.getSeconds() + 30)
           const current_time = Math.floor(now.getTime() / 1000)
           let token_is_valid = Promise.resolve()
+          console.log("token_is_valid promise resolve")
           if (current_time > expires_at) {
             console.log("current_Time > expires_at");
-            this.status({ fill: 'yellow', shape: 'dot', text: 'openid.status.refreshing' })
+            this.status({
+              fill: 'yellow',
+              shape: 'dot',
+              text: 'openid.status.refreshing'
+            })
             // const refresh_token = this.openid.credentials.refresh_token
             const refresh_token = "gotoerror";
             const oidcClient = new issuer.Client(this.openid.credentials)
@@ -267,8 +344,14 @@ module.exports = function (RED) {
               RED.nodes.addCredentials(this.id, this.openid.credentials)
               return Promise.resolve()
             }, err => {
-              this.error(RED._('openid.error.refresh-failed', { err: JSON.stringify(err) }))
-              this.status({ fill: 'red', shape: 'ring', text: 'openid.status.failed' })
+              this.error(RED._('openid.error.refresh-failed', {
+                err: JSON.stringify(err)
+              }))
+              this.status({
+                fill: 'red',
+                shape: 'ring',
+                text: 'openid.status.failed'
+              })
               msg.payload = err
               msg.error = err
               this.send(msg)
